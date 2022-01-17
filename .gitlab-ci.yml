@@ -1,0 +1,4 @@
+include:
+  - project: 'bookini-kz/pipeline-template'
+    ref: main
+    file: '.gitlab-ci-template.yml'
