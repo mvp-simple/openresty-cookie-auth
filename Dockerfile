@@ -16,3 +16,4 @@ COPY ./html /usr/share/nginx/html/
 COPY ./lua /etc/nginx/lua
 COPY ./nginx.conf   /etc/nginx/nginx.conf
 COPY conf.d/  /etc/nginx/conf.d/
+RUN mkdir /etc/nginx/conf.d/user.conf.d/
