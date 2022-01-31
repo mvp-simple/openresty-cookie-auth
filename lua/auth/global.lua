@@ -178,19 +178,50 @@ function ReadWriter()
     return obj
 end
 
-function findUserByCookie(postgres, rw)
+function findUserByCookie(postgres)
     local var_name = "cookie_" .. AUTH_COOKIE_NAME
     local cookie_value = ngx.var[var_name]
     if not cookie_value or cookie_value == '' then
-        rw:result("не обнаружена кука")
         return nil
     end
     local sql = "SELECT id, created_at, updated_at, deleted_at, cookie_str, user_id FROM auth.cookies where cookie_str = " .. postgres:escape_literal(cookie_value) .. " limit 1"
     local res = postgres:query(sql)
     if not res or #res == 0 then
-        rw:result("кука не валидна")
         return nil
     end
     return res[1]
+end
+
+function split(input_str, sep)
+    if sep == nil or sep == "" then
+        sep = "%s"
+    end
+    local t={}
+    for str in string.gmatch(input_str, "([^"..sep.."]+)") do
+        table.insert(t, str)
+    end
+    return t
+end
+
+jwt = require("resty.jwt")
+token_key = os.getenv("TOKEN_KEY")
+
+function findUserByToken(postgres)
+    local authorization_h = ngx.req.get_headers()["Authorization"]
+    if authorization_h == nil or authorization_h == "" then
+        return nil
+    end
+    local authorization = split(authorization_h, " ")
+    local token = authorization[1]
+    if table.getn(authorization) > 1 then
+        token = authorization[2]
+    end
+    local jwt_obj = jwt:verify(token_key, token)
+    if jwt_obj == nil or jwt_obj["verified"] == nil or jwt_obj["verified"] == false or jwt_obj["payload"]["id"] == nil then
+        return nil
+    end
+    return {
+        id = jwt_obj["payload"]["id"]
+    }
 end
 

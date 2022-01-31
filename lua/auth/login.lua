@@ -28,9 +28,9 @@ if #res ~= 1 then
     ngx.exit(ngx.HTTP_OK)
     return
 end
-
+local id = res[1].id
 local cookie_str = utils:guid()
-local sql = "INSERT INTO auth.cookies(created_at, updated_at, cookie_str, user_id) VALUES(now(), now(), '"..cookie_str.."',  "..res[1].id..")"
+local sql = "INSERT INTO auth.cookies(created_at, updated_at, cookie_str, user_id) VALUES(now(), now(), '"..cookie_str.."',  "..id..")"
 local res = postgres:query(sql)
 
 if not res or not res.affected_rows or res.affected_rows < 1 then
@@ -39,4 +39,11 @@ if not res or not res.affected_rows or res.affected_rows < 1 then
     return
 end
 ngx.header["Set-Cookie"] = AUTH_COOKIE_NAME .. "="..cookie_str.."; Path=/; Expires=" .. ngx.cookie_time(ngx.time() + AUTH_COOKIE_EXPIRES)
-rw:result("успешно")
+local jwt_token = jwt:sign(
+        token_key,
+        {
+            header={typ="JWT", alg="HS256"},
+            payload={id=id}
+        }
+)
+rw:result(jwt_token)

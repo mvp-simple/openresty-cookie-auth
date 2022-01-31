@@ -3,13 +3,14 @@ local postgres = database(rw)
 
 local user = findUserByCookie(postgres,rw)
 if not user or user == nil or not user.id or user.id == nil or user.id < 1 then
+    user = findUserByToken(postgres,rw)
+end
+if not user or user == nil or not user.id or user.id == nil or user.id < 1 then
+    rw:result("not auth")
     ngx.exit(ngx.HTTP_FORBIDDEN)
     return
 end
 
-ngx.req.set_header("X-AUTH-USER-ID", "1")
-ngx.header["X-AUTH-USER-ID"] = "1"
-ngx.ctx.user_id = "1"
 local uri = postgres:escape_literal(string.gsub(ngx.var.request_uri, "?.*", ""))
 local sql = [[
 with ids as (
@@ -25,6 +26,9 @@ select url_id from auth.users_custom_urls ucu where ucu.user_id = ]]..user.id..[
 limit 1]]
 local res, unknown = postgres:query(sql)
 
+ngx.req.set_header("X-AUTH-USER-ID", user.id)
+ngx.header["X-AUTH-USER-ID"] = user.id
+ngx.ctx.user_id = user.id
 if #res ~= 1 then
     ngx.exit(ngx.HTTP_FORBIDDEN)
     return
